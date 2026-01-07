@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Ro'yxati</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+        
+        .header h1 {
+            font-size: 36px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .anime-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        
+        .anime-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .anime-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .anime-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .anime-info {
+            padding: 20px;
+        }
+        
+        .anime-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ff9ff3;
+        }
+        
+        .anime-details {
+            font-size: 14px;
+            color: #c8d6e5;
+            line-height: 1.6;
+        }
+        
+        .anime-details p {
+            margin-bottom: 5px;
+        }
+        
+        .watch-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #54a0ff, #5f27cd);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .watch-btn:hover {
+            background: linear-gradient(45deg, #5f27cd, #54a0ff);
+        }
+        
+        .loader {
+            text-align: center;
+            padding: 50px;
+            font-size: 20px;
+            color: #ff9ff3;
+        }
+        
+        @media (max-width: 768px) {
+            .anime-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Anime Ro'yxati</h1>
+            <p>Barcha mavjud animelar</p>
+        </div>
+        
+        <div id="anime-list" class="anime-grid">
+            <div class="loader">Yuklanmoqda...</div>
+        </div>
+    </div>
+
+    <script>
+        // API endpoint (o'zingizning API manzilingizni qo'ying)
+        const API_URL = 'https://your-render-app.onrender.com/api/animes';
+        const BOT_USERNAME = 'anizona_rasmiy_bot';
+        
+        async function fetchAnimes() {
+            try {
+                const response = await fetch(API_URL);
+                const animes = await response.json();
+                displayAnimes(animes);
+            } catch (error) {
+                console.error('Xatolik:', error);
+                document.getElementById('anime-list').innerHTML = 
+                    '<div class="loader">Xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.</div>';
+            }
+        }
+        
+        function displayAnimes(animes) {
+            const container = document.getElementById('anime-list');
+            
+            if (!animes || animes.length === 0) {
+                container.innerHTML = '<div class="loader">Animelar topilmadi</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            animes.forEach(anime => {
+                const card = document.createElement('div');
+                card.className = 'anime-card';
+                
+                const telegramLink = `https://t.me/${BOT_USERNAME}?start=${anime.id}`;
+                
+                card.innerHTML = `
+                    <img src="https://via.placeholder.com/300x200/2c3e50/ffffff?text=Anime" 
+                         alt="${anime.title}" 
+                         class="anime-image">
+                    <div class="anime-info">
+                        <h3 class="anime-title">${anime.title}</h3>
+                        <div class="anime-details">
+                            <p>🎞 Qismlar: ${anime.episodes_count}</p>
+                            <p>🌍 Davlat: ${anime.country}</p>
+                            <p>🗣 Til: ${anime.language}</p>
+                            <p>📅 Yili: ${anime.year}</p>
+                            <p>🏷 Janr: ${anime.genres}</p>
+                        </div>
+                        <a href="${telegramLink}" class="watch-btn" target="_blank">
+                            Tomosha qilish
+                        </a>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Sahifa yuklanganda animelarni olish
+        window.onload = fetchAnimes;
+    </script>
+</body>
+</html>
