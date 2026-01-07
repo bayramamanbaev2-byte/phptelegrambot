@@ -1,68 +1,60 @@
-<?php
+# main.py - Asosiy bot fayli
 
-$servername = "localhost";
-$username = "baza_nomi";
-$password = "baza_paroli";
-$connect = mysqli_connect($servername, $username, $password, $username);
+import os
+import logging
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from database import db
 
-mysqli_query($connect,"CREATE TABLE IF NOT EXISTS `user_id` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(250) NOT NULL,
-  `status` text NOT NULL,
-  `refid` varchar(11) NOT NULL,
-  `sana` varchar(250) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
-mysqli_query($connect,"CREATE TABLE IF NOT EXISTS `status` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(250) NOT NULL,
-  `kun` varchar(250) NOT NULL,
-  `date` text NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
-mysqli_query($connect,"CREATE TABLE IF NOT EXISTS `send` (
-  `send_id` int(11) NOT NULL,
-  `time1` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `time2` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `start_id` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `stop_id` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `admin_id` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `message_id` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `reply_markup` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `step` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `time3` text NOT NULL,
-  `time4` text NOT NULL,
-  `time5` text NOT NULL,
-  PRIMARY KEY(`send_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
-mysqli_query($connect,"CREATE TABLE IF NOT EXISTS `kabinet` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(250) NOT NULL,
-  `pul` varchar(250) NOT NULL,
-  `pul2` varchar(250) NOT NULL,
-  `odam` varchar(250) NOT NULL,
-  `ban` text NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
-mysqli_query($connect,"CREATE TABLE IF NOT EXISTS `anime_datas` (
-  `data_id` int(11) NOT NULL AUTO_INCREMENT,
-  `id` text NOT NULL,
-  `file_id` text NOT NULL,
-  `qism` text NOT NULL,
-  `sana` text DEFAULT NULL,
-  PRIMARY KEY (`data_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
-mysqli_query($connect,"CREATE TABLE IF NOT EXISTS `animelar` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nom` text NOT NULL,
-  `rams` text NOT NULL,
-  `qismi` text NOT NULL,
-  `davlat` text NOT NULL,
-  `tili` text NOT NULL,
-  `yili` text NOT NULL,
-  `janri` text NOT NULL,
-  `qidiruv` text NOT NULL,
-  `sana` text NOT NULL,
-  `aniType` text NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+# Log sozlash
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Bot token
+BOT_TOKEN = os.getenv('BOT_TOKEN', '8551657001:AAEFBkGrkDgpeW-U-Vvl_XBqfz4uCdTSf3M')
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start komandasi"""
+    user_id = update.effective_user.id
+    
+    # Foydalanuvchini bazaga qo'shish
+    db.add_user(user_id)
+    
+    await update.message.reply_text(
+        "✨ Botga xush kelibsiz!",
+        parse_mode='HTML'
+    )
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """Xatolarni qayta ishlash"""
+    logger.error(f"Xato: {context.error}")
+    
+    if update and hasattr(update, 'effective_user'):
+        await update.effective_user.send_message(
+            "❌ Botda texnik muammo yuz berdi. Iltimos, keyinroq urinib ko'ring."
+        )
+
+def main():
+    """Asosiy funksiya"""
+    # Botni yaratish
+    application = Application.builder().token(BOT_TOKEN).build()
+    
+    # Handlers
+    application.add_handler(CommandHandler("start", start))
+    
+    # Xatolarni qayta ishlash
+    application.add_error_handler(error_handler)
+    
+    # Botni ishga tushirish
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == "__main__":
+    # Database statistikasini ko'rsatish
+    stats = db.get_statistics()
+    logger.info(f"Database statistikasi: {stats}")
+    
+    # Botni ishga tushirish
+    main()
