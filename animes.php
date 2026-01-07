@@ -1,110 +1,65 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anime Ro'yxati</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: 'Rubik', sans-serif;
-    }
-    body {
-      margin: 0;
-      background: linear-gradient(to right, #0f172a, #1e3a8a);
-    }
-    .card {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      background: linear-gradient(145deg, #1e293b, #334155);
-    }
-    .card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
-    }
-    .watch-btn {
-      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
-    }
-    .watch-btn:hover {
-      background-color: #1d4ed8;
-      transform: scale(1.05);
-      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.7);
-    }
-    .header {
-      animation: fadeIn 1s ease-in-out;
-    }
-    @keyframes fadeIn {
-      0% { opacity: 0; transform: translateY(-20px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-  </style>
-</head>
-<body class="min-h-screen text-white p-4 md:p-8">
-  <div class="max-w-7xl mx-auto">
-    <h2 class="header text-3xl md:text-4xl font-bold text-center mb-10 text-blue-300 drop-shadow-lg">🎬 Anime Ro'yxati</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <?php
-      include 'sql.php';
+import logging
+import asyncio
+import sqlite3
+from datetime import datetime
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
-      // Bot tokenni bu yerda o'zgartiring
-      $bot_token = '8551657001:AAEYgG3HHQiWMazm1SVJZpXKQ3ttAvIN3iI';
+# SOZLAMALAR
+TOKEN = "8551657001:AAEYgG3HHQiWMazm1SVJZpXKQ3ttAvIN3iI"
+ADMINS = [7179662037, 2025400572]
 
-      function getFilePath($file_id, $bot_token) {
-        $api_url = "https://api.telegram.org/bot$bot_token/getFile?file_id=$file_id";
-        $result = file_get_contents($api_url);
-        $result_json = json_decode($result, true);
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 
-        if ($result_json['ok']) {
-          return $result_json['result']['file_path'];
-        }
-        return null;
-      }
+# BAZA BILAN ISHLASH
+def init_db():
+    conn = sqlite3.connect('anime_bot.db')
+    cursor = conn.cursor()
+    # Foydalanuvchilar jadvali
+    cursor.execute('''CREATE TABLE IF NOT EXISTS users 
+                      (user_id INTEGER PRIMARY KEY, status TEXT, refid TEXT, sana TEXT)''')
+    # Animelar jadvali
+    cursor.execute('''CREATE TABLE IF NOT EXISTS anime_datas 
+                      (data_id INTEGER PRIMARY KEY AUTO_INCREMENT, anime_id TEXT, file_id TEXT, qism TEXT, sana TEXT)''')
+    conn.commit()
+    conn.close()
 
-      $sql = mysqli_query($connect, "SELECT * FROM animelar ORDER BY id DESC");
-      while($row = mysqli_fetch_assoc($sql)) {
-        $id = htmlspecialchars($row['id']);
-        $nom = htmlspecialchars($row['nom']);
-        $file_id = htmlspecialchars($row['rams']);
-        $qismi = htmlspecialchars($row['qismi']);
-        $davlat = htmlspecialchars($row['davlat']);
-        $tili = htmlspecialchars($row['tili']);
-        $yili = htmlspecialchars($row['yili']);
-        $janr = htmlspecialchars($row['janri']);
+def add_user(user_id, refid=None):
+    conn = sqlite3.connect('anime_bot.db')
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO users (user_id, status, refid, sana) VALUES (?, ?, ?, ?)",
+                   (user_id, 'active', refid, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
 
-        $file_path = getFilePath($file_id, $bot_token);
-        $file_link = $file_path ? "https://api.telegram.org/file/bot$bot_token/$file_path" : '';
-        $telegram_link = "https://t.me/anizona_rasmiy_bot?start=$id";
+# START BUYRUG'I
+@dp.message(Command("start"))
+async def cmd_start(message: Message):
+    user_id = message.from_user.id
+    refid = message.text.split()[1] if len(message.text.split()) > 1 else None
+    add_user(user_id, refid)
+    
+    markup = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Animelar 🎞"), KeyboardButton(text="Kabinet 👤")]],
+        resize_keyboard=True
+    )
+    await message.answer("Xush kelibsiz! Anime botimizga xush kelibsiz.", reply_markup=markup)
 
-        $media_html = '';
-        if ($file_link) {
-          if (substr($file_path, -4) === '.mp4') {
-            $media_html = "<video controls class='w-full h-48 object-cover rounded-t-xl'><source src='$file_link' type='video/mp4'>Video ko‘rsatilmayapti.</video>";
-          } else {
-            $media_html = "<img src='$file_link' alt='$nom' class='w-full h-48 object-cover rounded-t-xl'>";
-          }
-        } else {
-          $media_html = "<div class='w-full h-48 flex items-center justify-center bg-red-950 rounded-t-xl text-red-300'>❌ Fayl yuklanmadi</div>";
-        }
+# ADMIN PANEL (SODDA VARIANT)
+@dp.message(Command("panel"))
+async def admin_panel(message: Message):
+    if message.from_user.id in ADMINS:
+        await message.answer("Admin panelga xush kelibsiz!")
 
-        echo "
-          <a href='$telegram_link' class='card rounded-xl overflow-hidden cursor-pointer'>
-            $media_html
-            <div class='p-5'>
-              <h3 class='text-lg font-semibold text-blue-200 mb-3'>$nom</h3>
-              <p class='text-sm text-blue-300 mb-1'>🎞 Qismlar: $qismi</p>
-              <p class='text-sm text-blue-300 mb-1'>🌍 Davlat: $davlat</p>
-              <p class='text-sm text-blue-300 mb-1'>🗣 Til: $tili</p>
-              <p class='text-sm text-blue-300 mb-1'>📅 Yili: $yili</p>
-              <p class='text-sm text-blue-300 mb-4'>🏷 Janr: $janr</p>
-              <button onclick='window.location.href=\"$telegram_link\"' class='watch-btn w-full bg-blue-500 text-white font-medium py-2 rounded-lg text-center'>Tomosha qilish</button>
-            </div>
-          </a>
-        ";
-      }
-      ?>
-    </div>
-  </div>
-</body>
-</html>
+# BOTNI ISHGA TUSHIRISH
+async def main():
+    init_db()
+    logging.basicConfig(level=logging.INFO)
+    print("Bot ishga tushdi...")
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
